@@ -63,7 +63,7 @@ class Server:
                 self.timeLeft = 3
                 dir = self.getMoveDirection(request)
 
-                self.powerMotor(40, dir)
+                self.powerMotor(90, dir)
 
                 cl.send('HTTP/1.0 200 OK\r\nContent-type: text/plain\r\n\r\n')
                 cl.close()

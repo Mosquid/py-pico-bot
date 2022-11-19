@@ -25,6 +25,5 @@ class Motor:
         self.speedPin.duty_u16(int(speed / 100 * 65536))
 
     def stop(self):
-        self.forwardPin
         self.reversePin.off()
         self.forwardPin.off()
