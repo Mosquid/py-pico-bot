@@ -1,20 +1,47 @@
-from machine import Pin
 from motor import Motor
 from wifi import connect_wifi
 import _thread
-import blink_dance
 import socket
 import time
 
+timer = 3
+lock = _thread.allocate_lock()
+
+
+def secondThread():
+    global timer
+    motor = Motor(14, 15)
+
+    while True:
+        lock.acquire()
+
+        if timer > 0:
+            timer -= 1
+
+        lock.release()
+        time.sleep(.33)
+
+        if timer == 0:
+            motor.stop()
+
+
+_thread.start_new_thread(secondThread, ())
+
 
 class Server:
-    timeLeft = 3
-    idleThread = None
+
+    def resetTimer(self):
+        global timer
+        global lock
+
+        lock.acquire()
+        timer = 3
+        lock.release()
 
     def __init__(self):
-        self.ledOn = False
-        self.led = Pin("LED", Pin.OUT)
+
         self.motor = Motor(14, 15)
+        self.motor.stop()
         connect_wifi()
         self.start_server()
         self.serve()
@@ -25,17 +52,9 @@ class Server:
         self.socket.setsockopt(
             socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # type: ignore
         self.socket.bind(addr)
-        self.socket.listen(1)
+        self.socket.listen(5)
 
         print('listening by new server on', addr)
-
-    def idle(self):
-        while self.timeLeft > 0:
-            self.timeLeft -= 1
-            time.sleep(1)
-            print(self.timeLeft)
-
-        self.motor.stop()
 
     def powerMotor(self, speed, direction):
         if direction == 'forw':
@@ -60,19 +79,19 @@ class Server:
                 cl, addr = self.socket.accept()
                 print('client connected from', addr)
                 request = cl.recv(1024)
-                self.timeLeft = 3
+                self.resetTimer()
                 dir = self.getMoveDirection(request)
 
                 self.powerMotor(90, dir)
 
-                cl.send('HTTP/1.0 200 OK\r\nContent-type: text/plain\r\n\r\n')
+                cl.send(
+                    'HTTP/1.0 200 OK\r\nContent-type: text/plain\r\nAccess-Control-Allow-Origin: * \r\n\r\n')
+
                 cl.close()
 
-                if self.idleThread is None:
-                    self.idleThread = _thread.start_new_thread(self.idle, ())
-
-            except OSError:
-                blink_dance.blink_dance()
+            except Exception as e:
+                print(e)
+                # blink_dance.blink_dance()
                 print('connection closed')
 
                 if cl:
