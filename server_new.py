@@ -1,46 +1,59 @@
 from motor import Motor
+from request_parser import RequestParser
+from stearing import Stearing
 from wifi import connect_wifi
 import _thread
 import socket
 import time
 
-timer = 3
+
+stearing = Stearing()
+engineTimer = 3
+stearingTimer = 1
 lock = _thread.allocate_lock()
+motor = Motor(14, 15)
 
 
-def secondThread():
-    global timer
-    motor = Motor(14, 15)
+def mainLoop():
+    global engineTimer, stearingTimer, motor
 
     while True:
         lock.acquire()
 
-        if timer > 0:
-            timer -= 1
+        if stearingTimer > 0:
+            stearingTimer -= 1
+
+        if engineTimer > 0:
+            engineTimer -= 1
 
         lock.release()
         time.sleep(.33)
 
-        if timer == 0:
+        if stearingTimer == 0:
+            stearing.end()
+
+        if engineTimer == 0:
             motor.stop()
 
 
-_thread.start_new_thread(secondThread, ())
+_thread.start_new_thread(mainLoop, ())
 
 
 class Server:
 
-    def resetTimer(self):
-        global timer
-        global lock
+    def resetTimers(self):
+        global stearingTimer, lock, engineTimer
 
         lock.acquire()
-        timer = 3
+        engineTimer = 3
+        stearingTimer = 1
         lock.release()
 
     def __init__(self):
+        global motor, stearing
 
-        self.motor = Motor(14, 15)
+        self.stearing = stearing
+        self.motor = motor
         self.motor.stop()
         connect_wifi()
         self.start_server()
@@ -78,11 +91,19 @@ class Server:
             try:
                 cl, addr = self.socket.accept()
                 print('client connected from', addr)
-                request = cl.recv(1024)
-                self.resetTimer()
-                dir = self.getMoveDirection(request)
+                raw_request = cl.recv(1024)
+                self.resetTimers()
 
-                self.powerMotor(90, dir)
+                p = RequestParser(raw_request.decode("utf-8"))
+                print(p.json['pid'])
+                # dir = self.getMoveDirection(request)
+
+                # self.powerMotor(90, dir)
+
+                # if dir == 'forw':
+                #     self.stearing.leftTurn(90)
+                # else:
+                #     self.stearing.rightTurn(90)
 
                 cl.send(
                     'HTTP/1.0 200 OK\r\nContent-type: text/plain\r\nAccess-Control-Allow-Origin: * \r\n\r\n')
