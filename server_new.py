@@ -8,7 +8,7 @@ import time
 
 
 stearing = Stearing()
-engineTimer = 3
+engineTimer = 20
 stearingTimer = 1
 lock = _thread.allocate_lock()
 motor = Motor(14, 15, 16)
@@ -45,7 +45,7 @@ class Server:
         global stearingTimer, lock, engineTimer
 
         lock.acquire()
-        engineTimer = 3
+        engineTimer = 20
         stearingTimer = 1
         lock.release()
 
