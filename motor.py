@@ -1,14 +1,11 @@
 from machine import PWM, Pin
 
-speedPin = PWM(Pin(16))
-
 
 class Motor:
 
-    def __init__(self, forwardPin, reversePin):
-        global speedPin
+    def __init__(self, forwardPin, reversePin, speedPin):
 
-        self.speedPin = speedPin
+        self.speedPin = PWM(Pin(speedPin))
         self.forwardPin = Pin(forwardPin, Pin.OUT)
         self.reversePin = Pin(reversePin, Pin.OUT)
 

@@ -11,7 +11,7 @@ stearing = Stearing()
 engineTimer = 3
 stearingTimer = 1
 lock = _thread.allocate_lock()
-motor = Motor(14, 15)
+motor = Motor(14, 15, 16)
 
 
 def mainLoop():
@@ -27,7 +27,7 @@ def mainLoop():
             engineTimer -= 1
 
         lock.release()
-        time.sleep(.33)
+        time.sleep(.3)
 
         if stearingTimer == 0:
             stearing.end()
@@ -69,22 +69,6 @@ class Server:
 
         print('listening by new server on', addr)
 
-    def powerMotor(self, speed, direction):
-        if direction == 'forw':
-            method = 'forward'
-        else:
-            method = 'reverse'
-
-        getattr(self.motor, method)(speed)
-
-    def getMoveDirection(self, req):
-        reqString = str(req)
-
-        if reqString.find('/forw') >= 0:
-            return 'forw'
-        elif reqString.find('/back') >= 0:
-            return 'back'
-
     def serve(self):
         while True:
             cl = None
@@ -95,15 +79,25 @@ class Server:
                 self.resetTimers()
 
                 p = RequestParser(raw_request.decode("utf-8"))
-                print(p.json['pid'])
-                # dir = self.getMoveDirection(request)
+                params = p.json
+                y = params['y']
+                x = params['x']
 
-                # self.powerMotor(90, dir)
+                print(p.json)
 
-                # if dir == 'forw':
-                #     self.stearing.leftTurn(90)
-                # else:
-                #     self.stearing.rightTurn(90)
+                if y > 0:
+                    self.motor.forward(y)
+                elif y < 0:
+                    self.motor.reverse(abs(y))
+                else:
+                    self.motor.stop()
+
+                if x > 0:
+                    self.stearing.rightTurn(x)
+                elif x < 0:
+                    self.stearing.leftTurn(abs(x))
+                else:
+                    self.stearing.end()
 
                 cl.send(
                     'HTTP/1.0 200 OK\r\nContent-type: text/plain\r\nAccess-Control-Allow-Origin: * \r\n\r\n')
